@@ -24,13 +24,37 @@
         <span class="text-[11px] font-bold uppercase tracking-widest text-blue-400">Talão Digital Comercial</span>
         <h1 class="text-lg font-extrabold leading-tight">Pedido Personalizado</h1>
       </div>
-      <button type="button" onclick="resetForm()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg font-semibold transition">
-        Limpar Tudo
-      </button>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="toggleImportBox()" class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg font-bold transition">
+          Importar do WhatsApp
+        </button>
+        <button type="button" onclick="resetForm()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg font-semibold transition">
+          Limpar
+        </button>
+      </div>
     </div>
   </header>
 
   <main class="max-w-3xl mx-auto px-4 pt-5 space-y-4">
+
+    <!-- ÁREA DE IMPORTAÇÃO RÁPIDA (PARA O ADMINISTRADOR) -->
+    <section id="importBox" class="hidden card-section p-4 sm:p-5 border-2 border-blue-500 bg-blue-50/40">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-xs font-extrabold uppercase tracking-wide text-blue-900">
+          Importar Pedido Recebido no WhatsApp → Planilha
+        </h2>
+        <button type="button" onclick="toggleImportBox()" class="text-xs text-slate-500 hover:text-slate-800 font-bold">Fechar ✕</button>
+      </div>
+      <p class="text-xs text-slate-600 mb-2.5">
+        Cole abaixo a mensagem inteira que o vendedor enviou no WhatsApp. O sistema extrai os 31 campos e já copia pronto para você colar na coluna <strong>A</strong> da planilha (<code>Ctrl + V</code>).
+      </p>
+      <textarea id="whatsappPasteInput" rows="3" class="input-field text-xs font-mono mb-2.5" placeholder="Cole aqui a mensagem recebida no WhatsApp..."></textarea>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="importAndCopyFromWhatsapp()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition">
+          Extrair e Copiar p/ Planilha Agora
+        </button>
+      </div>
+    </section>
 
     <!-- 1. IDENTIFICAÇÃO E CLIENTE -->
     <section class="card-section p-4 sm:p-5">
@@ -411,8 +435,40 @@
       const toast = document.getElementById('toast');
       toast.textContent = msg;
       toast.classList.remove('opacity-0');
-      setTimeout(() => toast.classList.add('opacity-0'), 3200);
+      setTimeout(() => toast.classList.add('opacity-0'), 3500);
     }
+
+    function copyTextToClipboard(text, successMessage) {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(successMessage);
+        }).catch(() => {
+          fallbackCopy(text, successMessage);
+        });
+      } else {
+        fallbackCopy(text, successMessage);
+      }
+    }
+
+    function fallbackCopy(text, successMessage) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast(successMessage);
+    }
+
+    window.toggleImportBox = function() {
+      const box = document.getElementById('importBox');
+      box.classList.toggle('hidden');
+      if (!box.classList.contains('hidden')) {
+        document.getElementById('whatsappPasteInput').focus();
+      }
+    };
 
     window.toggleSection = function(elementId, isChecked) {
       const el = document.getElementById(elementId);
@@ -547,9 +603,9 @@
       return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
-    window.copySpreadsheetRow = function() {
+    function buildRowArray() {
       const calc = calculateTotal();
-      const row = [
+      return [
         document.getElementById('orderId').value.trim() || 'NOVO',
         formatDateBR(document.getElementById('orderDate').value),
         document.getElementById('sellerName').value.trim().toUpperCase(),
@@ -582,19 +638,28 @@
         formatNumBR(calc.p2.cost),
         formatNumBR(calc.grandTotal)
       ];
+    }
 
-      const tsvLine = row.join('\t');
-      navigator.clipboard.writeText(tsvLine).then(() => {
-        showToast('Copiado! Cole na coluna A da planilha (Ctrl+V).');
-      }).catch(() => {
-        const ta = document.createElement('textarea');
-        ta.value = tsvLine;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        showToast('Copiado! Cole na coluna A da planilha (Ctrl+V).');
-      });
+    window.copySpreadsheetRow = function() {
+      const row = buildRowArray();
+      const tsvLine = row.join('	');
+      copyTextToClipboard(tsvLine, 'Copiado! Cole na coluna A da planilha (Ctrl+V).');
+    };
+
+    window.importAndCopyFromWhatsapp = function() {
+      const rawText = document.getElementById('whatsappPasteInput').value;
+      const match = rawText.match(/\[PLANILHA:\s*([^\]]+)\]/);
+      if (!match || !match[1]) {
+        showToast('Código [PLANILHA: ...] não encontrado. Cole a mensagem completa do pedido.');
+        return;
+      }
+      const cols = match[1].split('|').map(item => item.trim());
+      if (cols.length < 31) {
+        showToast('A linha importada parece incompleta. Verifique se copiou toda a mensagem.');
+        return;
+      }
+      const tsvLine = cols.slice(0, 31).join('	');
+      copyTextToClipboard(tsvLine, 'Extraído! Agora clique na coluna A da planilha e aperte Ctrl+V.');
     };
 
     window.sendToWhatsApp = function() {
@@ -672,7 +737,15 @@
         lines.push(`*Obs:* ${notes}`);
       }
 
-      const text = encodeURIComponent(lines.join('\n'));
+      // Linha compacta sincronizada com as 31 colunas da planilha GESTÃO DE PEDIDOS
+      const packedRow = buildRowArray().map(v => String(v).replace(/\|/g, '/')).join('|');
+      lines.push(
+        ``,
+        `[PLANILHA: ${packedRow}]`
+      );
+
+      const text = encodeURIComponent(lines.join('
+'));
       const rawDest = document.getElementById('factoryWhatsapp').value.replace(/\D/g, '');
       const url = rawDest ? `https://wa.me/${rawDest}?text=${text}` : `https://wa.me/?text=${text}`;
       window.open(url, '_blank');
