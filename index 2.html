@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Talão Digital de Pedidos - Personalizados</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #0f172a; }
+    .card-section { background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .input-field { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 12px; font-size: 14px; background: #fff; transition: border-color 0.15s, box-shadow 0.15s; }
+    .input-field:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+    .label-text { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; margin-bottom: 4px; }
+    .badge-price { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-weight: 700; font-size: 12px; padding: 3px 9px; border-radius: 999px; }
+  </style>
+</head>
+<body class="pb-32">
+
+  <!-- Cabeçalho -->
+  <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+    <div class="max-w-3xl mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div>
+        <span class="text-[11px] font-bold uppercase tracking-widest text-blue-400">Talão Digital Comercial</span>
+        <h1 class="text-lg font-extrabold leading-tight">Pedido Personalizado</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="toggleImportBox()" class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg font-bold transition">
+          Importar do WhatsApp
+        </button>
+        <button type="button" onclick="resetForm()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg font-semibold transition">
+          Limpar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 pt-5 space-y-4">
+
+    <!-- ÁREA DE IMPORTAÇÃO RÁPIDA (PARA O ADMINISTRADOR) -->
+    <section id="importBox" class="hidden card-section p-4 sm:p-5 border-2 border-blue-500 bg-blue-50/40">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-xs font-extrabold uppercase tracking-wide text-blue-900">
+          Importar Pedido Recebido no WhatsApp → Planilha
+        </h2>
+        <button type="button" onclick="toggleImportBox()" class="text-xs text-slate-500 hover:text-slate-800 font-bold">Fechar ✕</button>
+      </div>
+      <p class="text-xs text-slate-600 mb-2.5">
+        Cole abaixo a mensagem inteira que o vendedor enviou no WhatsApp. O sistema extrai os 31 campos e já copia pronto para você colar na coluna <strong>A</strong> da planilha (<code>Ctrl + V</code>).
+      </p>
+      <textarea id="whatsappPasteInput" rows="3" class="input-field text-xs font-mono mb-2.5" placeholder="Cole aqui a mensagem recebida no WhatsApp..."></textarea>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="importAndCopyFromWhatsapp()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition">
+          Extrair e Copiar p/ Planilha Agora
+        </button>
+      </div>
+    </section>
+
+    <!-- 1. IDENTIFICAÇÃO E CLIENTE -->
+    <section class="card-section p-4 sm:p-5">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <h2 class="text-sm font-extrabold uppercase tracking-wide text-slate-800 flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-slate-900 text-white text-xs flex items-center justify-center">1</span>
+          Identificação e Cliente
+        </h2>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div>
+          <label class="label-text" for="orderId">ID do Pedido</label>
+          <input type="text" id="orderId" class="input-field" placeholder="Ex: CP 03" oninput="calculateTotal()">
+        </div>
+        <div>
+          <label class="label-text" for="orderDate">Data do Pedido</label>
+          <input type="date" id="orderDate" class="input-field" oninput="calculateTotal()">
+        </div>
+        <div class="col-span-2 sm:col-span-1">
+          <label class="label-text" for="sellerName">Vendedor *</label>
+          <input type="text" id="sellerName" class="input-field" placeholder="Nome do vendedor" oninput="calculateTotal()">
+        </div>
+        <div class="col-span-2 sm:col-span-2">
+          <label class="label-text" for="clientName">Nome do Cliente *</label>
+          <input type="text" id="clientName" class="input-field" placeholder="Nome completo do cliente" oninput="calculateTotal()">
+        </div>
+        <div class="col-span-2 sm:col-span-1">
+          <label class="label-text" for="clientPhone">WhatsApp / Contato *</label>
+          <input type="tel" id="clientPhone" class="input-field" placeholder="21-99999-9999" oninput="calculateTotal()">
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. PRODUTO E PINTURA AUTOMOTIVA -->
+    <section class="card-section p-4 sm:p-5">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <h2 class="text-sm font-extrabold uppercase tracking-wide text-slate-800 flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">2</span>
+          Produto e Pintura Automotiva
+        </h2>
+        <span id="paintBadge" class="badge-price">R$ 80,00</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+        <div>
+          <label class="label-text" for="category">Categoria</label>
+          <select id="category" class="input-field" onchange="toggleBaseSupport()">
+            <option value="CAPA CELULAR">Capa de Celular</option>
+            <option value="PORTA CELULAR DE PAREDE">Porta Celular de Parede</option>
+            <option value="PORTA CELULAR DE MESA">Porta Celular de Mesa</option>
+          </select>
+        </div>
+        <div>
+          <label class="label-text" for="deviceModel">Modelo do Aparelho *</label>
+          <input type="text" id="deviceModel" class="input-field" placeholder="Ex: Samsung A07 / iPhone 15" oninput="calculateTotal()">
+        </div>
+        <div>
+          <label class="label-text" for="themeName">Tema / Referência</label>
+          <input type="text" id="themeName" class="input-field" placeholder="Ex: Iron Man, Minimalista..." oninput="calculateTotal()">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="sm:col-span-2">
+          <label class="label-text" for="paintType">Tipo de Pintura Automotiva</label>
+          <select id="paintType" class="input-field" onchange="calculateTotal()">
+            <option value="80|PINTURA BÁSICA ACETINADA">1 - Pintura Básica Acetinada (Preto, Branco, Prata, Cinza) — R$ 80,00</option>
+            <option value="90|PINTURA COLOR ACETINADA">2 - Pintura Color Acetinada (Demais cores + verniz acetinado) — R$ 90,00</option>
+            <option value="100|PINTURA BÁSICA COM VERNIZ BRILHO">3 - Pintura Básica com Verniz Brilho (Preto, Branco, Prata, Cinza) — R$ 100,00</option>
+            <option value="120|PINTURA COLOR VERNIZ BRILHO">4 - Pintura Color com Verniz Brilho (Demais cores) — R$ 120,00</option>
+            <option value="200|PINTURA FLAKE DUPLA CAMADA DE VERNIZ">5 - Pintura Flake Dupla Camada de Verniz (2 etapas) — R$ 200,00</option>
+            <option value="250|PINTURA FLAKE TRIPLA CAMADA DE VERNIZ">6 - Pintura Flake Tripla Camada de Verniz (3 etapas) — R$ 250,00</option>
+          </select>
+        </div>
+        <div id="baseSupportContainer" class="hidden">
+          <label class="label-text" for="baseSupportPrice">Valor Base / Suporte (R$)</label>
+          <input type="number" step="0.01" min="0" id="baseSupportPrice" class="input-field" value="0" placeholder="0,00" oninput="calculateTotal()">
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. ARTE / RECORTE EM ACRÍLICO -->
+    <section class="card-section p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <label class="flex items-center gap-2.5 cursor-pointer select-none">
+          <input type="checkbox" id="enableAcrylicArt" class="w-4 h-4 accent-amber-600 rounded" onchange="toggleSection('acrylicArtFields', this.checked)">
+          <span class="text-sm font-extrabold uppercase tracking-wide text-slate-800">3. Arte / Recorte em Acrílico</span>
+        </label>
+        <span id="acrylicArtBadge" class="badge-price">R$ 0,00</span>
+      </div>
+
+      <div id="acrylicArtFields" class="hidden mt-4 pt-3 border-t border-slate-100 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="label-text" for="artDesc">Descrição da Arte</label>
+            <input type="text" id="artDesc" class="input-field" placeholder="Ex: Logo Avengers, Aranha..." oninput="calculateTotal()">
+          </div>
+          <div>
+            <label class="label-text" for="artColor">Cor e Tipo do Acrílico</label>
+            <input type="text" id="artColor" class="input-field" placeholder="Ex: Prata Espelhado, Dourado..." oninput="calculateTotal()">
+          </div>
+          <div>
+            <label class="label-text" for="artPos">Posição na Capa</label>
+            <select id="artPos" class="input-field" onchange="calculateTotal()">
+              <option value="Centro / Meio da Capa">Centro / Meio da Capa</option>
+              <option value="Canto Superior Direito">Canto Superior Direito</option>
+              <option value="Canto Superior Esquerdo">Canto Superior Esquerdo</option>
+              <option value="Superior Centralizada">Superior Centralizada</option>
+              <option value="Meio Lateral Esquerda">Meio Lateral Esquerda</option>
+              <option value="Meio Lateral Direita">Meio Lateral Direita</option>
+              <option value="Inferior Centralizada">Inferior Centralizada</option>
+              <option value="Canto Inferior Direito">Canto Inferior Direito</option>
+              <option value="Canto Inferior Esquerdo">Canto Inferior Esquerdo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="label-text" for="artW">Largura (cm)</label>
+            <input type="number" step="0.1" min="0" id="artW" class="input-field" placeholder="Ex: 2.9" oninput="calculateTotal()">
+          </div>
+          <div>
+            <label class="label-text" for="artH">Altura (cm)</label>
+            <input type="number" step="0.1" min="0" id="artH" class="input-field" placeholder="Ex: 2.5" oninput="calculateTotal()">
+          </div>
+          <div>
+            <label class="label-text" for="artRate">Tarifa por cm² (R$)</label>
+            <select id="artRate" class="input-field" onchange="calculateTotal()">
+              <option value="0.60">R$ 0,60 / cm² (Padrão)</option>
+              <option value="0.70">R$ 0,70 / cm²</option>
+              <option value="0.95">R$ 0,95 / cm² (Vazado)</option>
+              <option value="1.30">R$ 1,30 / cm² (Dupla Cor)</option>
+            </select>
+          </div>
+        </div>
+        <p id="artAreaInfo" class="text-xs text-slate-500 font-medium">Área calculada: 0,00 cm²</p>
+      </div>
+    </section>
+
+    <!-- 4. PLACA DE ACRÍLICO COM NOME -->
+    <section class="card-section p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <label class="flex items-center gap-2.5 cursor-pointer select-none">
+          <input type="checkbox" id="enableNamePlate" class="w-4 h-4 accent-purple-600 rounded" onchange="toggleSection('namePlateFields', this.checked)">
+          <span class="text-sm font-extrabold uppercase tracking-wide text-slate-800">4. Placa de Acrílico com Nome</span>
+        </label>
+        <span id="namePlateBadge" class="badge-price">R$ 0,00</span>
+      </div>
+
+      <div id="namePlateFields" class="hidden mt-4 pt-3 border-t border-slate-100 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="label-text" for="plateName">Texto / Nome na Placa</label>
+            <input type="text" id="plateName" class="input-field" placeholder="Ex: IRON MAT" oninput="calculateTotal()">
+          </div>
+          <div>
+            <label class="label-text" for="platePos">Posição na Capa</label>
+            <select id="platePos" class="input-field" onchange="calculateTotal()">
+              <option value="Inferior Centralizada">Inferior Centralizada</option>
+              <option value="Centro / Meio da Capa">Centro / Meio da Capa</option>
+              <option value="Superior Centralizada">Superior Centralizada</option>
+              <option value="Canto Superior Direito">Canto Superior Direito</option>
+              <option value="Canto Superior Esquerdo">Canto Superior Esquerdo</option>
+              <option value="Meio Lateral Esquerda">Meio Lateral Esquerda</option>
+              <option value="Meio Lateral Direita">Meio Lateral Direita</option>
+              <option value="Canto Inferior Direito">Canto Inferior Direito</option>
+              <option value="Canto Inferior Esquerdo">Canto Inferior Esquerdo</option>
+            </select>
+          </div>
+          <div>
+            <label class="label-text" for="plateFont">Tipo de Fonte</label>
+            <input type="text" id="plateFont" class="input-field" placeholder="Ex: Stereogothic, Nulshock..." oninput="calculateTotal()">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="label-text" for="plateType">Tipo de Gravação / Acabamento</label>
+            <select id="plateType" class="input-field" onchange="calculateTotal()">
+              <option value="0.60|GRAVAÇÃO SIMPLES">Gravação Simples — R$ 0,60 / cm²</option>
+              <option value="0.95|VAZADO SIMPLES">Nome Vazado Simples — R$ 0,95 / cm²</option>
+              <option value="1.30|VAZADO + LETRA">Vazado + Letra Outra Cor — R$ 1,30 / cm²</option>
+            </select>
+          </div>
+          <div>
+            <label class="label-text" for="plateW">Largura (cm)</label>
+            <input type="number" step="0.1" min="0" id="plateW" class="input-field" placeholder="Ex: 9.0" oninput="calculateTotal()">
+          </div>
+          <div>
+            <label class="label-text" for="plateH">Altura (cm)</label>
+            <input type="number" step="0.1" min="0" id="plateH" class="input-field" placeholder="Ex: 1.7" oninput="calculateTotal()">
+          </div>
+        </div>
+        <p id="plateAreaInfo" class="text-xs text-slate-500 font-medium">Área calculada: 0,00 cm²</p>
+      </div>
+    </section>
+
+    <!-- 5. IMPRESSÃO / SUBLIMAÇÃO (ATÉ 2 IMPRESSÕES) -->
+    <section class="card-section p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <label class="flex items-center gap-2.5 cursor-pointer select-none">
+          <input type="checkbox" id="enablePrint1" class="w-4 h-4 accent-emerald-600 rounded" onchange="toggleSection('print1Fields', this.checked)">
+          <span class="text-sm font-extrabold uppercase tracking-wide text-slate-800">5. Impressão / Sublimação (R$ 0,60/cm²)</span>
+        </label>
+        <span id="printTotalBadge" class="badge-price">R$ 0,00</span>
+      </div>
+
+      <div id="print1Fields" class="hidden mt-4 pt-3 border-t border-slate-100 space-y-4">
+        <!-- 1ª IMPRESSÃO -->
+        <div class="bg-emerald-50/50 border border-emerald-200/80 rounded-xl p-3.5 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold uppercase text-emerald-800">1ª Impressão / Sublimação</span>
+            <span id="print1Badge" class="text-xs font-bold text-emerald-700">R$ 0,00</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="label-text" for="print1Desc">Descrição da Imagem</label>
+              <input type="text" id="print1Desc" class="input-field" placeholder="Ex: Imagem Iron Man" oninput="calculateTotal()">
+            </div>
+            <div>
+              <label class="label-text" for="print1Pos">Posição na Capa</label>
+              <select id="print1Pos" class="input-field" onchange="calculateTotal()">
+                <option value="Centro / Meio da Capa">Centro / Meio da Capa</option>
+                <option value="Canto Superior Direito">Canto Superior Direito</option>
+                <option value="Canto Superior Esquerdo">Canto Superior Esquerdo</option>
+                <option value="Superior Centralizada">Superior Centralizada</option>
+                <option value="Meio Lateral Esquerda">Meio Lateral Esquerda</option>
+                <option value="Meio Lateral Direita">Meio Lateral Direita</option>
+                <option value="Inferior Centralizada">Inferior Centralizada</option>
+                <option value="Canto Inferior Direito">Canto Inferior Direito</option>
+                <option value="Canto Inferior Esquerdo">Canto Inferior Esquerdo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="label-text" for="print1Shape">Formato</label>
+              <select id="print1Shape" class="input-field" onchange="togglePrintShape(1)">
+                <option value="rect">Retangular / Quadrada (cm)</option>
+                <option value="circle">Circular (Diâmetro em mm)</option>
+              </select>
+            </div>
+            <div id="print1RectInputs" class="sm:col-span-2 grid grid-cols-2 gap-3">
+              <div>
+                <label class="label-text" for="print1W">Largura (cm)</label>
+                <input type="number" step="0.1" min="0" id="print1W" class="input-field" placeholder="Ex: 6.0" oninput="calculateTotal()">
+              </div>
+              <div>
+                <label class="label-text" for="print1H">Altura (cm)</label>
+                <input type="number" step="0.1" min="0" id="print1H" class="input-field" placeholder="Ex: 5.0" oninput="calculateTotal()">
+              </div>
+            </div>
+            <div id="print1CircleInput" class="hidden sm:col-span-2">
+              <label class="label-text" for="print1Diam">Diâmetro do Círculo (mm)</label>
+              <input type="number" step="1" min="0" id="print1Diam" class="input-field" placeholder="Ex: 60 (equivale a 6cm)" oninput="calculateTotal()">
+            </div>
+          </div>
+          <p id="print1AreaInfo" class="text-xs text-emerald-700 font-medium">Área 1ª impressão: 0,00 cm²</p>
+        </div>
+
+        <!-- BOTÃO / CHECKBOX PARA 2ª IMPRESSÃO -->
+        <div class="pt-1">
+          <label class="inline-flex items-center gap-2 cursor-pointer bg-slate-100 hover:bg-slate-200/80 px-3.5 py-2 rounded-lg text-xs font-bold text-slate-800 transition">
+            <input type="checkbox" id="enablePrint2" class="w-4 h-4 accent-emerald-600 rounded" onchange="toggleSection('print2Fields', this.checked)">
+            + Adicionar 2ª Impressão / Sublimação na mesma peça
+          </label>
+        </div>
+
+        <!-- 2ª IMPRESSÃO -->
+        <div id="print2Fields" class="hidden bg-teal-50/50 border border-teal-200/80 rounded-xl p-3.5 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold uppercase text-teal-800">2ª Impressão / Sublimação</span>
+            <span id="print2Badge" class="text-xs font-bold text-teal-700">R$ 0,00</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="label-text" for="print2Desc">Descrição da 2ª Imagem</label>
+              <input type="text" id="print2Desc" class="input-field" placeholder="Ex: Logo Canto Direito" oninput="calculateTotal()">
+            </div>
+            <div>
+              <label class="label-text" for="print2Pos">Posição na Capa</label>
+              <select id="print2Pos" class="input-field" onchange="calculateTotal()">
+                <option value="Canto Superior Direito">Canto Superior Direito</option>
+                <option value="Canto Superior Esquerdo">Canto Superior Esquerdo</option>
+                <option value="Centro / Meio da Capa">Centro / Meio da Capa</option>
+                <option value="Superior Centralizada">Superior Centralizada</option>
+                <option value="Meio Lateral Esquerda">Meio Lateral Esquerda</option>
+                <option value="Meio Lateral Direita">Meio Lateral Direita</option>
+                <option value="Inferior Centralizada">Inferior Centralizada</option>
+                <option value="Canto Inferior Direito">Canto Inferior Direito</option>
+                <option value="Canto Inferior Esquerdo">Canto Inferior Esquerdo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="label-text" for="print2Shape">Formato</label>
+              <select id="print2Shape" class="input-field" onchange="togglePrintShape(2)">
+                <option value="rect">Retangular / Quadrada (cm)</option>
+                <option value="circle">Circular (Diâmetro em mm)</option>
+              </select>
+            </div>
+            <div id="print2RectInputs" class="sm:col-span-2 grid grid-cols-2 gap-3">
+              <div>
+                <label class="label-text" for="print2W">Largura (cm)</label>
+                <input type="number" step="0.1" min="0" id="print2W" class="input-field" placeholder="Ex: 2.5" oninput="calculateTotal()">
+              </div>
+              <div>
+                <label class="label-text" for="print2H">Altura (cm)</label>
+                <input type="number" step="0.1" min="0" id="print2H" class="input-field" placeholder="Ex: 2.5" oninput="calculateTotal()">
+              </div>
+            </div>
+            <div id="print2CircleInput" class="hidden sm:col-span-2">
+              <label class="label-text" for="print2Diam">Diâmetro do Círculo (mm)</label>
+              <input type="number" step="1" min="0" id="print2Diam" class="input-field" placeholder="Ex: 30" oninput="calculateTotal()">
+            </div>
+          </div>
+          <p id="print2AreaInfo" class="text-xs text-teal-700 font-medium">Área 2ª impressão: 0,00 cm²</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. OBSERVAÇÕES E WHATSAPP DE PRODUÇÃO -->
+    <section class="card-section p-4 sm:p-5">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="sm:col-span-2">
+          <label class="label-text" for="orderNotes">Observações de Produção / Prazo</label>
+          <input type="text" id="orderNotes" class="input-field" placeholder="Ex: Sinal 50% pago via Pix, entregar dia 30/11...">
+        </div>
+        <div>
+          <label class="label-text" for="factoryWhatsapp">WhatsApp da Fábrica (Destino)</label>
+          <input type="tel" id="factoryWhatsapp" class="input-field" placeholder="5521968785106" value="">
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BARRA FIXA INFERIOR DE TOTAL E AÇÕES -->
+  <footer class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 shadow-lg z-40">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-baseline justify-between w-full sm:w-auto gap-3">
+        <span class="text-xs font-bold uppercase text-slate-500">Valor Total:</span>
+        <span id="grandTotalDisplay" class="text-2xl font-extrabold text-slate-900">R$ 80,00</span>
+      </div>
+      <div class="flex items-center gap-2.5 w-full sm:w-auto">
+        <button type="button" onclick="copySpreadsheetRow()" class="flex-1 sm:flex-initial bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
+          Copiar p/ Planilha
+        </button>
+        <button type="button" onclick="sendToWhatsApp()" class="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
+          Enviar WhatsApp
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- NOTIFICAÇÃO FLUTUANTE -->
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 z-50">
+    Copiado! Cole na coluna A da planilha (Ctrl+V).
+  </div>
+
+  <script>
+    function formatBRL(val) {
+      return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatNumBR(val) {
+      return Number(val || 0).toFixed(2).replace('.', ',');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0');
+      setTimeout(() => toast.classList.add('opacity-0'), 3500);
+    }
+
+    function copyTextToClipboard(text, successMessage) {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(successMessage);
+        }).catch(() => {
+          fallbackCopy(text, successMessage);
+        });
+      } else {
+        fallbackCopy(text, successMessage);
+      }
+    }
+
+    function fallbackCopy(text, successMessage) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast(successMessage);
+    }
+
+    window.toggleImportBox = function() {
+      const box = document.getElementById('importBox');
+      box.classList.toggle('hidden');
+      if (!box.classList.contains('hidden')) {
+        document.getElementById('whatsappPasteInput').focus();
+      }
+    };
+
+    window.toggleSection = function(elementId, isChecked) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        if (isChecked) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      }
+      calculateTotal();
+    };
+
+    window.toggleBaseSupport = function() {
+      const cat = document.getElementById('category').value;
+      const box = document.getElementById('baseSupportContainer');
+      if (cat === 'CAPA CELULAR') {
+        box.classList.add('hidden');
+        document.getElementById('baseSupportPrice').value = '0';
+      } else {
+        box.classList.remove('hidden');
+      }
+      calculateTotal();
+    };
+
+    window.togglePrintShape = function(num) {
+      const shape = document.getElementById('print' + num + 'Shape').value;
+      const rectBox = document.getElementById('print' + num + 'RectInputs');
+      const circBox = document.getElementById('print' + num + 'CircleInput');
+      if (shape === 'circle') {
+        rectBox.classList.add('hidden');
+        circBox.classList.remove('hidden');
+      } else {
+        rectBox.classList.remove('hidden');
+        circBox.classList.add('hidden');
+      }
+      calculateTotal();
+    };
+
+    function getSinglePrintData(num, enabled) {
+      if (!enabled) {
+        return { desc: '-', pos: '-', measure: '-', area: 0, cost: 0 };
+      }
+      const desc = document.getElementById('print' + num + 'Desc').value.trim() || 'Impressão ' + num;
+      const pos = document.getElementById('print' + num + 'Pos').value;
+      const shape = document.getElementById('print' + num + 'Shape').value;
+      let area = 0;
+      let measure = '-';
+
+      if (shape === 'circle') {
+        const diamMm = parseFloat(document.getElementById('print' + num + 'Diam').value) || 0;
+        const radiusCm = (diamMm / 10) / 2;
+        area = Math.PI * radiusCm * radiusCm;
+        measure = diamMm > 0 ? `Circular Ø ${diamMm}mm (${area.toFixed(2)} cm²)` : '-';
+      } else {
+        const w = parseFloat(document.getElementById('print' + num + 'W').value) || 0;
+        const h = parseFloat(document.getElementById('print' + num + 'H').value) || 0;
+        area = w * h;
+        measure = (w > 0 && h > 0) ? `Retangular ${w}cm x ${h}cm (${area.toFixed(2)} cm²)` : '-';
+      }
+
+      const cost = area * 0.60;
+      document.getElementById('print' + num + 'AreaInfo').textContent = `Área ${num}ª impressão: ${area.toFixed(2).replace('.', ',')} cm²`;
+      document.getElementById('print' + num + 'Badge').textContent = formatBRL(cost);
+
+      return { desc, pos, measure, area, cost };
+    }
+
+    window.calculateTotal = function() {
+      const paintRaw = document.getElementById('paintType').value.split('|');
+      const paintPrice = parseFloat(paintRaw[0]) || 0;
+      const paintLabel = paintRaw[1] || '';
+      document.getElementById('paintBadge').textContent = formatBRL(paintPrice);
+
+      const cat = document.getElementById('category').value;
+      const baseSupportPrice = (cat !== 'CAPA CELULAR') ? (parseFloat(document.getElementById('baseSupportPrice').value) || 0) : 0;
+
+      // Arte Acrílico
+      const artEnabled = document.getElementById('enableAcrylicArt').checked;
+      let artArea = 0, artCost = 0, artMeasure = '-';
+      if (artEnabled) {
+        const w = parseFloat(document.getElementById('artW').value) || 0;
+        const h = parseFloat(document.getElementById('artH').value) || 0;
+        const rate = parseFloat(document.getElementById('artRate').value) || 0.60;
+        artArea = w * h;
+        artCost = artArea * rate;
+        artMeasure = (w > 0 && h > 0) ? `${w}cm x ${h}cm (${artArea.toFixed(2)} cm²)` : '-';
+        document.getElementById('artAreaInfo').textContent = `Área calculada: ${artArea.toFixed(2).replace('.', ',')} cm²`;
+      }
+      document.getElementById('acrylicArtBadge').textContent = formatBRL(artCost);
+
+      // Placa Nome
+      const plateEnabled = document.getElementById('enableNamePlate').checked;
+      let plateArea = 0, plateCost = 0, plateMeasure = '-';
+      const plateRaw = document.getElementById('plateType').value.split('|');
+      const plateRate = parseFloat(plateRaw[0]) || 0.60;
+      const plateTypeLabel = plateRaw[1] || '';
+      if (plateEnabled) {
+        const w = parseFloat(document.getElementById('plateW').value) || 0;
+        const h = parseFloat(document.getElementById('plateH').value) || 0;
+        plateArea = w * h;
+        plateCost = plateArea * plateRate;
+        plateMeasure = (w > 0 && h > 0) ? `${w}cm x ${h}cm (${plateArea.toFixed(2)} cm²)` : '-';
+        document.getElementById('plateAreaInfo').textContent = `Área calculada: ${plateArea.toFixed(2).replace('.', ',')} cm²`;
+      }
+      document.getElementById('namePlateBadge').textContent = formatBRL(plateCost);
+
+      // Impressões 1 e 2
+      const p1Enabled = document.getElementById('enablePrint1').checked;
+      const p2Enabled = p1Enabled && document.getElementById('enablePrint2').checked;
+      const p1 = getSinglePrintData(1, p1Enabled);
+      const p2 = getSinglePrintData(2, p2Enabled);
+      const totalPrintCost = p1.cost + p2.cost;
+      document.getElementById('printTotalBadge').textContent = formatBRL(totalPrintCost);
+
+      const grandTotal = paintPrice + baseSupportPrice + artCost + plateCost + totalPrintCost;
+      document.getElementById('grandTotalDisplay').textContent = formatBRL(grandTotal);
+
+      return {
+        paintPrice, paintLabel, baseSupportPrice,
+        artEnabled, artCost, artMeasure,
+        plateEnabled, plateCost, plateMeasure, plateTypeLabel,
+        p1Enabled, p1, p2Enabled, p2,
+        grandTotal
+      };
+    };
+
+    function formatDateBR(isoDate) {
+      if (!isoDate) return '';
+      const parts = isoDate.split('-');
+      if (parts.length !== 3) return isoDate;
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    function buildRowArray() {
+      const calc = calculateTotal();
+      return [
+        document.getElementById('orderId').value.trim() || 'NOVO',
+        formatDateBR(document.getElementById('orderDate').value),
+        document.getElementById('sellerName').value.trim().toUpperCase(),
+        document.getElementById('clientName').value.trim().toUpperCase(),
+        document.getElementById('clientPhone').value.trim(),
+        document.getElementById('category').value,
+        document.getElementById('deviceModel').value.trim().toUpperCase(),
+        document.getElementById('themeName').value.trim().toUpperCase(),
+        calc.paintLabel,
+        formatNumBR(calc.paintPrice),
+        formatNumBR(calc.baseSupportPrice),
+        calc.artEnabled ? (document.getElementById('artDesc').value.trim().toUpperCase() || '-') : '-',
+        calc.artEnabled ? (document.getElementById('artColor').value.trim().toUpperCase() || '-') : '-',
+        calc.artEnabled ? document.getElementById('artPos').value : '-',
+        calc.artEnabled ? calc.artMeasure : '-',
+        formatNumBR(calc.artCost),
+        calc.plateEnabled ? (document.getElementById('plateName').value.trim().toUpperCase() || '-') : '-',
+        calc.plateEnabled ? document.getElementById('platePos').value : '-',
+        calc.plateEnabled ? calc.plateMeasure : '-',
+        calc.plateEnabled ? calc.plateTypeLabel : '-',
+        calc.plateEnabled ? (document.getElementById('plateFont').value.trim().toUpperCase() || '-') : '-',
+        formatNumBR(calc.plateCost),
+        calc.p1Enabled ? calc.p1.desc.toUpperCase() : '-',
+        calc.p1Enabled ? calc.p1.pos : '-',
+        calc.p1Enabled ? calc.p1.measure : '-',
+        formatNumBR(calc.p1.cost),
+        calc.p2Enabled ? calc.p2.desc.toUpperCase() : '-',
+        calc.p2Enabled ? calc.p2.pos : '-',
+        calc.p2Enabled ? calc.p2.measure : '-',
+        formatNumBR(calc.p2.cost),
+        formatNumBR(calc.grandTotal)
+      ];
+    }
+
+    window.copySpreadsheetRow = function() {
+      const row = buildRowArray();
+      const tsvLine = row.join('	');
+      copyTextToClipboard(tsvLine, 'Copiado! Cole na coluna A da planilha (Ctrl+V).');
+    };
+
+    window.importAndCopyFromWhatsapp = function() {
+      const rawText = document.getElementById('whatsappPasteInput').value;
+      const match = rawText.match(/\[PLANILHA:\s*([^\]]+)\]/);
+      if (!match || !match[1]) {
+        showToast('Código [PLANILHA: ...] não encontrado. Cole a mensagem completa do pedido.');
+        return;
+      }
+      const cols = match[1].split('|').map(item => item.trim());
+      if (cols.length < 31) {
+        showToast('A linha importada parece incompleta. Verifique se copiou toda a mensagem.');
+        return;
+      }
+      const tsvLine = cols.slice(0, 31).join('	');
+      copyTextToClipboard(tsvLine, 'Extraído! Agora clique na coluna A da planilha e aperte Ctrl+V.');
+    };
+
+    window.sendToWhatsApp = function() {
+      const calc = calculateTotal();
+      const orderId = document.getElementById('orderId').value.trim() || 'S/N';
+      const orderDate = formatDateBR(document.getElementById('orderDate').value);
+      const seller = document.getElementById('sellerName').value.trim() || 'Não informado';
+      const client = document.getElementById('clientName').value.trim() || 'Não informado';
+      const phone = document.getElementById('clientPhone').value.trim() || 'Não informado';
+      const cat = document.getElementById('category').value;
+      const model = document.getElementById('deviceModel').value.trim() || 'Não informado';
+      const theme = document.getElementById('themeName').value.trim() || '-';
+      const notes = document.getElementById('orderNotes').value.trim();
+
+      let lines = [
+        `*NOVO PEDIDO PERSONALIZADO - #${orderId}*`,
+        `*Data:* ${orderDate}`,
+        `*Vendedor:* ${seller}`,
+        `*Cliente:* ${client} (${phone})`,
+        `--------------------------------`,
+        `*Produto:* ${cat}`,
+        `*Modelo:* ${model}`,
+        `*Tema:* ${theme}`,
+        `*Pintura:* ${calc.paintLabel} (${formatBRL(calc.paintPrice)})`
+      ];
+
+      if (calc.baseSupportPrice > 0) {
+        lines.push(`*Base / Suporte:* ${formatBRL(calc.baseSupportPrice)}`);
+      }
+
+      if (calc.artEnabled) {
+        lines.push(
+          `--------------------------------`,
+          `*ARTE EM ACRÍLICO:* ${document.getElementById('artDesc').value.trim() || '-'}`,
+          `• Material/Cor: ${document.getElementById('artColor').value.trim() || '-'}`,
+          `• Posição: ${document.getElementById('artPos').value}`,
+          `• Medida: ${calc.artMeasure} — *${formatBRL(calc.artCost)}*`
+        );
+      }
+
+      if (calc.plateEnabled) {
+        lines.push(
+          `--------------------------------`,
+          `*PLACA ACRÍLICO NOME:* ${document.getElementById('plateName').value.trim() || '-'}`,
+          `• Gravação: ${calc.plateTypeLabel} | Fonte: ${document.getElementById('plateFont').value.trim() || '-'}`,
+          `• Posição: ${document.getElementById('platePos').value}`,
+          `• Medida: ${calc.plateMeasure} — *${formatBRL(calc.plateCost)}*`
+        );
+      }
+
+      if (calc.p1Enabled) {
+        lines.push(
+          `--------------------------------`,
+          `*1ª IMPRESSÃO/SUBLIMAÇÃO:* ${calc.p1.desc}`,
+          `• Posição: ${calc.p1.pos}`,
+          `• Medida: ${calc.p1.measure} — *${formatBRL(calc.p1.cost)}*`
+        );
+      }
+
+      if (calc.p2Enabled) {
+        lines.push(
+          `--------------------------------`,
+          `*2ª IMPRESSÃO/SUBLIMAÇÃO:* ${calc.p2.desc}`,
+          `• Posição: ${calc.p2.pos}`,
+          `• Medida: ${calc.p2.measure} — *${formatBRL(calc.p2.cost)}*`
+        );
+      }
+
+      lines.push(
+        `================================`,
+        `*VALOR TOTAL DO PEDIDO: ${formatBRL(calc.grandTotal)}*`
+      );
+
+      if (notes) {
+        lines.push(`*Obs:* ${notes}`);
+      }
+
+      // Linha compacta sincronizada com as 31 colunas da planilha GESTÃO DE PEDIDOS
+      const packedRow = buildRowArray().map(v => String(v).replace(/\|/g, '/')).join('|');
+      lines.push(
+        ``,
+        `[PLANILHA: ${packedRow}]`
+      );
+
+      const text = encodeURIComponent(lines.join('
+'));
+      const rawDest = document.getElementById('factoryWhatsapp').value.replace(/\D/g, '');
+      const url = rawDest ? `https://wa.me/${rawDest}?text=${text}` : `https://wa.me/?text=${text}`;
+      window.open(url, '_blank');
+    };
+
+    window.resetForm = function() {
+      document.querySelectorAll('input[type="text"], input[type="tel"], input[type="number"]').forEach(el => {
+        if (el.id !== 'sellerName' && el.id !== 'factoryWhatsapp') el.value = '';
+      });
+      document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+      ['acrylicArtFields', 'namePlateFields', 'print1Fields', 'print2Fields', 'baseSupportContainer'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      document.getElementById('category').value = 'CAPA CELULAR';
+      document.getElementById('paintType').selectedIndex = 0;
+      document.getElementById('orderDate').valueAsDate = new Date();
+      calculateTotal();
+      showToast('Formulário limpo para novo pedido.');
+    };
+
+    // Inicialização
+    document.getElementById('orderDate').valueAsDate = new Date();
+    calculateTotal();
+  </script>
+</body>
+</html>
